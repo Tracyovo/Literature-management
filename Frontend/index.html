@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Literature Manager</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Local-first workspace</p>
+          <h1>Literature Manager</h1>
+          <p class="subtitle">
+            Store files locally, manage metadata, and keep everything
+            searchable.
+          </p>
+        </div>
+        <div class="hero-card">
+          <h2>API Status</h2>
+          <button id="healthCheck" class="ghost">Ping API</button>
+          <pre id="healthResult"></pre>
+        </div>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Storage Root</h2>
+          <p class="muted">
+            Pick the root directory where files are stored locally.
+          </p>
+          <div class="row">
+            <input
+              id="storageRoot"
+              type="text"
+              placeholder="D:\\Data\\Literature"
+            />
+            <button id="saveRoot">Save</button>
+          </div>
+          <div id="rootStatus" class="status"></div>
+        </div>
+
+        <div class="card">
+          <h2>Upload Literature</h2>
+          <form id="uploadForm" class="stack">
+            <div class="row">
+              <input id="titleInput" type="text" placeholder="Title" />
+              <input id="authorsInput" type="text" placeholder="Authors" />
+            </div>
+            <div class="row">
+              <input id="yearInput" type="number" placeholder="Year" />
+              <input id="journalInput" type="text" placeholder="Journal" />
+            </div>
+            <textarea
+              id="abstractInput"
+              placeholder="Abstract"
+              rows="3"
+            ></textarea>
+            <div class="row">
+              <select id="categorySelect">
+                <option value="">No category</option>
+              </select>
+              <input id="subdirInput" type="text" placeholder="Subfolder" />
+            </div>
+            <div class="row">
+              <input id="fileInput" type="file" />
+              <button type="submit">Upload</button>
+            </div>
+            <div id="uploadStatus" class="status"></div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row space-between">
+          <h2>Library</h2>
+          <button id="refreshList" class="ghost">Refresh</button>
+        </div>
+        <div class="search-bar">
+          <input id="searchInput" type="text" placeholder="Search keywords" />
+          <select id="searchCategory">
+            <option value="">All categories</option>
+          </select>
+          <input id="yearStart" type="number" placeholder="Year from" />
+          <input id="yearEnd" type="number" placeholder="Year to" />
+          <button id="runSearch">Search</button>
+        </div>
+        <div class="table">
+          <div class="table-head">
+            <span>Title</span>
+            <span>Authors</span>
+            <span>Year</span>
+            <span>Category</span>
+          </div>
+          <div id="literatureList" class="table-body"></div>
+        </div>
+      </section>
+    </main>
+    <script src="js/app.js"></script>
+  </body>
+</html>

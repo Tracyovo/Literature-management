@@ -1,0 +1,8 @@
+Backend/__pycache__/
+Backend/**/*.pyc
+Backend/uploads/
+Backend/store.db
+Backend/storage_config.json
+Frontend/node_modules/
+.env
+*.log
