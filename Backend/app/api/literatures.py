@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -25,6 +26,32 @@ logger = logging.getLogger(__name__)
 def _save_upload_file(upload_file: UploadFile, target_path: Path) -> None:
     with target_path.open("wb") as buffer:
         shutil.copyfileobj(upload_file.file, buffer)
+
+
+def _unique_path(target_path: Path) -> Path:
+    if not target_path.exists():
+        return target_path
+    stem = target_path.stem
+    suffix = target_path.suffix
+    parent = target_path.parent
+    counter = 1
+    while True:
+        candidate = parent / f"{stem}_{counter}{suffix}"
+        if not candidate.exists():
+            return candidate
+        counter += 1
+
+
+def _safe_remove(path: Path, base_dir: Path) -> None:
+    try:
+        base = base_dir.resolve()
+        target = path.resolve()
+        if os.path.commonpath([base, target]) != str(base):
+            return
+        if target.exists():
+            target.unlink()
+    except OSError:
+        logger.exception("Failed to remove old file")
 
 
 @router.post("/", response_model=LiteratureOut)
@@ -73,9 +100,13 @@ def delete_literature(literature_id: int, db: Session = Depends(get_db)):
     if not literature:
         raise HTTPException(status_code=404, detail="Literature not found")
     lit_id = literature.id
+    file_path = literature.file_path
     db.delete(literature)
     db.commit()
     delete_fts(db, lit_id)
+    if file_path:
+        settings = get_settings()
+        _safe_remove(Path(file_path), settings.storage_root)
     return None
 
 
@@ -94,12 +125,18 @@ def upload_file(
     storage_root.mkdir(parents=True, exist_ok=True)
 
     filename = file.filename or "uploaded.bin"
+    extension = Path(filename).suffix.lower().lstrip(".")
+    if extension and extension not in settings.allowed_extensions:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
     target_dir = storage_root
     if subdir:
         target_dir = safe_join(storage_root, subdir)
         target_dir.mkdir(parents=True, exist_ok=True)
 
     target_path = safe_join(target_dir, filename)
+    target_path = _unique_path(target_path)
+    if literature.file_path:
+        _safe_remove(Path(literature.file_path), storage_root)
     _save_upload_file(file, target_path)
 
     content_text = ""
@@ -109,10 +146,10 @@ def upload_file(
         logger.exception("Failed to extract text from upload")
 
     literature.file_path = str(target_path)
-    literature.file_name = filename
+    literature.file_name = target_path.name
     literature.content_text = content_text
     if not literature.title:
-        literature.title = Path(filename).stem
+        literature.title = target_path.stem
     db.commit()
     upsert_fts(db, literature)
     db.refresh(literature)
@@ -131,6 +168,12 @@ def create_with_upload(
     subdir: str | None = Form(default=None),
     db: Session = Depends(get_db),
 ):
+    settings = get_settings()
+    extension = Path(file.filename or "").suffix.lower().lstrip(".")
+    if extension and extension not in settings.allowed_extensions:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+    if not title:
+        title = Path(file.filename or "uploaded").stem
     payload = LiteratureCreateWithUpload(
         title=title,
         authors=authors,

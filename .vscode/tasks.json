@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend: Run API",
+      "type": "shell",
+      "command": "python",
+      "args": [
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/Backend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: Run Tests",
+      "type": "shell",
+      "command": "pytest",
+      "args": ["tests"],
+      "options": {
+        "cwd": "${workspaceFolder}/Backend"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

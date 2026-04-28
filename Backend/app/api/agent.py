@@ -24,8 +24,12 @@ def suggest(payload: AgentSuggestRequest, db: Session = Depends(get_db)):
         literature = db.get(Literature, literature_id)
         if not literature:
             raise HTTPException(status_code=404, detail="Literature not found")
+        if not text:
+            text = literature.content_text or ""
         if not text and literature.file_path:
             text = read_text_from_path(Path(literature.file_path))
+        if not filename:
+            filename = literature.file_name or None
         if not filename and literature.file_path:
             filename = Path(literature.file_path).name
 

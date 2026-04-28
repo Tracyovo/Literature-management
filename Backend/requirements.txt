@@ -7,3 +7,5 @@ aiofiles
 pdfplumber
 python-docx
 chardet
+pytest
+httpx

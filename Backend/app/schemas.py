@@ -10,6 +10,10 @@ class CategoryCreate(CategoryBase):
     pass
 
 
+class CategoryUpdate(BaseModel):
+    name: str = Field(..., max_length=100)
+
+
 class CategoryOut(CategoryBase):
     id: int
 
@@ -20,7 +24,7 @@ class CategoryOut(CategoryBase):
 class LiteratureBase(BaseModel):
     title: str = Field(..., max_length=255)
     authors: Optional[str] = Field(default=None, max_length=255)
-    year: Optional[int] = None
+    year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
     category_id: Optional[int] = None
@@ -33,7 +37,7 @@ class LiteratureCreate(LiteratureBase):
 class LiteratureCreateWithUpload(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
     authors: Optional[str] = Field(default=None, max_length=255)
-    year: Optional[int] = None
+    year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
     category_id: Optional[int] = None
@@ -42,7 +46,7 @@ class LiteratureCreateWithUpload(BaseModel):
 class LiteratureUpdate(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
     authors: Optional[str] = Field(default=None, max_length=255)
-    year: Optional[int] = None
+    year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
     category_id: Optional[int] = None

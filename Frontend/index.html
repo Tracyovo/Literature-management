@@ -67,8 +67,25 @@
               <input id="fileInput" type="file" />
               <button type="submit">Upload</button>
             </div>
+            <div class="progress">
+              <div id="uploadProgress" class="progress-bar"></div>
+            </div>
             <div id="uploadStatus" class="status"></div>
           </form>
+        </div>
+
+        <div class="card">
+          <h2>Categories</h2>
+          <div class="row">
+            <input
+              id="newCategoryInput"
+              type="text"
+              placeholder="New category"
+            />
+            <button id="addCategory">Add</button>
+          </div>
+          <div id="categoryStatus" class="status"></div>
+          <div id="categoryList" class="pill-list"></div>
         </div>
       </section>
 
@@ -92,11 +109,52 @@
             <span>Authors</span>
             <span>Year</span>
             <span>Category</span>
+            <span>Actions</span>
           </div>
           <div id="literatureList" class="table-body"></div>
         </div>
       </section>
     </main>
+
+    <div id="editModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-action="close"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="row space-between">
+          <h2>Edit Literature</h2>
+          <button id="closeEdit" class="ghost">Close</button>
+        </div>
+        <div class="stack">
+          <div class="row">
+            <input id="editTitle" type="text" placeholder="Title" />
+            <input id="editAuthors" type="text" placeholder="Authors" />
+          </div>
+          <div class="row">
+            <input id="editYear" type="number" placeholder="Year" />
+            <input id="editJournal" type="text" placeholder="Journal" />
+          </div>
+          <textarea
+            id="editAbstract"
+            rows="4"
+            placeholder="Abstract"
+          ></textarea>
+          <div class="row">
+            <select id="editCategory">
+              <option value="">No category</option>
+            </select>
+            <button id="agentSuggest" class="ghost" type="button">
+              Agent Suggest
+            </button>
+          </div>
+          <div class="row space-between">
+            <div id="agentStatus" class="status"></div>
+            <div class="actions">
+              <button id="saveEdit">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="js/app.js"></script>
   </body>
 </html>

@@ -30,6 +30,7 @@ class Settings:
     cors_origins: List[str]
     auth_enabled: bool
     api_key: str
+    allowed_extensions: List[str]
 
 
 def _load_runtime_storage_root() -> Path | None:
@@ -67,12 +68,17 @@ def get_settings() -> Settings:
     cors_origins = _parse_csv(os.getenv("CORS_ORIGINS", "*"))
     auth_enabled = _parse_bool(os.getenv("AUTH_ENABLED"), default=False)
     api_key = os.getenv("API_KEY", "change-me")
+    allowed_extensions = [
+        ext.lower()
+        for ext in _parse_csv(os.getenv("ALLOWED_EXTENSIONS", "pdf,docx,txt"))
+    ]
     return Settings(
         database_url=db_url,
         storage_root=storage_root,
         cors_origins=cors_origins,
         auth_enabled=auth_enabled,
         api_key=api_key,
+        allowed_extensions=allowed_extensions,
     )
 
 
