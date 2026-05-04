@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Literature Manager - User Manual</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 32px;
+        color: #1e1e1e;
+        line-height: 1.6;
+      }
+      h1 {
+        margin-bottom: 8px;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .card {
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 16px 0;
+        background: #fafafa;
+      }
+      ul {
+        margin: 8px 0 8px 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Literature Manager - User Manual</h1>
+    <p>
+      This app is local-first. It stores data on your machine and does not
+      require network access except when using an external AI API.
+    </p>
+
+    <div class="card">
+      <h2>Quick Start</h2>
+      <ol>
+        <li>Unzip the package to any folder.</li>
+        <li>Double-click <code>launch.bat</code>.</li>
+        <li>
+          The backend starts in a console window and the UI opens in your
+          browser.
+        </li>
+      </ol>
+      <p>
+        If the UI opens before the backend is ready, refresh the page after a
+        few seconds.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Core Features</h2>
+      <ul>
+        <li>Upload PDF/DOCX/TXT files and extract text.</li>
+        <li>
+          Edit metadata: title, authors, year, journal, abstract, citation.
+        </li>
+        <li>Manage categories and browse with sorting and pagination.</li>
+        <li>Search with full-text index (FTS5) and fallback keyword search.</li>
+        <li>Import/export in CSV or BibTeX formats.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Storage Location</h2>
+      <p>
+        The default storage root is <code>Backend/uploads</code>. You can change
+        it in the UI (Storage Root section). The new path is saved to
+        <code>Backend/storage_config.json</code>.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Agent (Optional)</h2>
+      <p>
+        The Agent can call an external API to suggest metadata. If the API is
+        not configured or unavailable, the app uses rule-based extraction.
+      </p>
+      <p>Environment variables (optional):</p>
+      <ul>
+        <li><code>AI_PROVIDER=api</code></li>
+        <li><code>AI_CUSTOM_ENDPOINT=https://your-host/your-endpoint</code></li>
+        <li><code>AI_API_KEY=your-key</code></li>
+        <li><code>AI_MODEL=your-model</code></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Troubleshooting</h2>
+      <ul>
+        <li>Cannot upload file: check file type (PDF/DOCX/TXT only).</li>
+        <li>Search results empty: ensure the backend is running.</li>
+        <li>
+          Agent shows offline: configure API or use rule-based extraction.
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

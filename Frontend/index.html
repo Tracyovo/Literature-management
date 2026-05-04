@@ -42,6 +42,43 @@
         </div>
 
         <div class="card">
+          <h2>Agent Configuration</h2>
+          <p class="muted">
+            Configure external API for metadata suggestions (optional).
+          </p>
+          <div class="row">
+            <select id="agentProvider">
+              <option value="disabled">Disabled</option>
+              <option value="api">API</option>
+            </select>
+            <input
+              id="agentEndpoint"
+              type="text"
+              placeholder="https://your-host/your-endpoint"
+            />
+          </div>
+          <div class="row">
+            <input id="agentModel" type="text" placeholder="Model name" />
+            <input
+              id="agentApiKey"
+              type="password"
+              placeholder="API key (optional)"
+            />
+          </div>
+          <div class="row">
+            <input
+              id="agentTimeout"
+              type="number"
+              min="1"
+              max="120"
+              placeholder="Timeout seconds"
+            />
+            <button id="saveAgentConfig">Save</button>
+          </div>
+          <div id="agentConfigStatus" class="status"></div>
+        </div>
+
+        <div class="card">
           <h2>Upload Literature</h2>
           <form id="uploadForm" class="stack">
             <div class="row">
@@ -56,6 +93,11 @@
               id="abstractInput"
               placeholder="Abstract"
               rows="3"
+            ></textarea>
+            <textarea
+              id="citationInput"
+              placeholder="Citation"
+              rows="2"
             ></textarea>
             <div class="row">
               <select id="categorySelect">
@@ -103,6 +145,31 @@
           <input id="yearEnd" type="number" placeholder="Year to" />
           <button id="runSearch">Search</button>
         </div>
+        <div class="row space-between">
+          <div class="row">
+            <select id="sortBy">
+              <option value="id">Sort by: ID</option>
+              <option value="title">Sort by: Title</option>
+              <option value="year">Sort by: Year</option>
+              <option value="created_at">Sort by: Created</option>
+              <option value="updated_at">Sort by: Updated</option>
+            </select>
+            <select id="sortOrder">
+              <option value="desc">Desc</option>
+              <option value="asc">Asc</option>
+            </select>
+            <select id="pageSize">
+              <option value="10">10 / page</option>
+              <option value="25" selected>25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
+          <div class="row">
+            <button id="prevPage" class="ghost">Prev</button>
+            <span id="pageInfo" class="muted">Page 1</span>
+            <button id="nextPage" class="ghost">Next</button>
+          </div>
+        </div>
         <div class="table">
           <div class="table-head">
             <span>Title</span>
@@ -137,6 +204,11 @@
             rows="4"
             placeholder="Abstract"
           ></textarea>
+          <textarea
+            id="editCitation"
+            rows="2"
+            placeholder="Citation"
+          ></textarea>
           <div class="row">
             <select id="editCategory">
               <option value="">No category</option>
@@ -146,7 +218,10 @@
             </button>
           </div>
           <div class="row space-between">
-            <div id="agentStatus" class="status"></div>
+            <div>
+              <div id="agentMeta" class="muted"></div>
+              <div id="agentStatus" class="status"></div>
+            </div>
             <div class="actions">
               <button id="saveEdit">Save</button>
             </div>
@@ -154,6 +229,32 @@
         </div>
       </div>
     </div>
+
+    <div id="detailModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-action="close-detail"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="row space-between">
+          <h2>Literature Detail</h2>
+          <button id="closeDetail" class="ghost">Close</button>
+        </div>
+        <div class="stack">
+          <div><strong>Title:</strong> <span id="detailTitle"></span></div>
+          <div><strong>Authors:</strong> <span id="detailAuthors"></span></div>
+          <div><strong>Year:</strong> <span id="detailYear"></span></div>
+          <div><strong>Journal:</strong> <span id="detailJournal"></span></div>
+          <div>
+            <strong>Category:</strong> <span id="detailCategory"></span>
+          </div>
+          <div><strong>Abstract:</strong></div>
+          <div id="detailAbstract" class="detail-box"></div>
+          <div><strong>Citation:</strong></div>
+          <div id="detailCitation" class="detail-box"></div>
+          <div><strong>File:</strong> <span id="detailFile"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-stack" aria-live="polite"></div>
 
     <script src="js/app.js"></script>
   </body>

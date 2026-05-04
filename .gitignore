@@ -6,3 +6,4 @@ Backend/storage_config.json
 Frontend/node_modules/
 .env
 *.log
+.venv/

@@ -4,7 +4,7 @@
     {
       "label": "Backend: Run API",
       "type": "shell",
-      "command": "python",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
       "args": [
         "-m",
         "uvicorn",
@@ -24,8 +24,8 @@
     {
       "label": "Backend: Run Tests",
       "type": "shell",
-      "command": "pytest",
-      "args": ["tests"],
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pytest", "tests"],
       "options": {
         "cwd": "${workspaceFolder}/Backend"
       },

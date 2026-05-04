@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+python-multipart
+aiofiles
+pdfplumber
+python-docx
+chardet
+pytest
+httpx

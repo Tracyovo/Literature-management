@@ -41,7 +41,7 @@ def test_upload_parsing_and_search(client):
     response = client.get("/search", params={"q": "NLP"})
     assert response.status_code == 200
     results = response.json()
-    assert len(results) == 1
+    assert len(results["items"]) == 1
 
     response = client.delete(f"/literatures/{data['id']}")
     assert response.status_code == 204
@@ -106,4 +106,44 @@ def test_search_fallback_like(client, monkeypatch):
     response = client.get("/search", params={"q": "NLP"})
     assert response.status_code == 200
     results = response.json()
-    assert len(results) == 1
+    assert len(results["items"]) == 1
+
+
+def test_import_csv_invalid_year(client):
+    content = "title,year\nPaper,20xx\n"
+    payload = {
+        "file": ("import.csv", BytesIO(content.encode("utf-8")), "text/csv"),
+    }
+    response = client.post(
+        "/literatures/import",
+        data={"format": "csv"},
+        files=payload,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["created"] == 0
+    assert body["skipped"] == 1
+    assert body["errors"][0]["reason"] == "Invalid year value"
+
+
+def test_import_bibtex_invalid_year(client):
+    content = """
+@article{lit1,
+  title={Test Paper},
+  author={Alice},
+  year={20xx}
+}
+"""
+    payload = {
+        "file": ("import.bib", BytesIO(content.encode("utf-8")), "text/plain"),
+    }
+    response = client.post(
+        "/literatures/import",
+        data={"format": "bibtex"},
+        files=payload,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["created"] == 0
+    assert body["skipped"] == 1
+    assert body["errors"][0]["reason"] == "Invalid year value"

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -22,11 +24,12 @@ class CategoryOut(CategoryBase):
 
 
 class LiteratureBase(BaseModel):
-    title: str = Field(..., max_length=255)
+    title: str = Field(..., min_length=1, max_length=255)
     authors: Optional[str] = Field(default=None, max_length=255)
     year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
+    citation: Optional[str] = None
     category_id: Optional[int] = None
 
 
@@ -40,15 +43,17 @@ class LiteratureCreateWithUpload(BaseModel):
     year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
+    citation: Optional[str] = None
     category_id: Optional[int] = None
 
 
 class LiteratureUpdate(BaseModel):
-    title: Optional[str] = Field(default=None, max_length=255)
+    title: Optional[str] = Field(default=None, min_length=1, max_length=255)
     authors: Optional[str] = Field(default=None, max_length=255)
     year: Optional[int] = Field(default=None, ge=1800, le=2100)
     journal: Optional[str] = Field(default=None, max_length=255)
     abstract: Optional[str] = None
+    citation: Optional[str] = None
     category_id: Optional[int] = None
 
 
@@ -57,14 +62,42 @@ class LiteratureOut(LiteratureBase):
     file_path: Optional[str] = None
     file_name: Optional[str] = None
     content_text: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
+class SearchHighlights(BaseModel):
+    title: Optional[str] = None
+    authors: Optional[str] = None
+    abstract: Optional[str] = None
+    content_text: Optional[str] = None
+
+
+class SearchHit(BaseModel):
+    literature: LiteratureOut
+    score: Optional[float] = None
+    highlights: Optional[SearchHighlights] = None
+
+
+class SearchResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[SearchHit]
+
+
 class StorageRootUpdate(BaseModel):
     storage_root: str
+
+
+class AgentConfig(BaseModel):
+    ai_provider: str = Field(default="disabled")
+    ai_custom_endpoint: Optional[str] = None
+    ai_api_key: Optional[str] = None
+    ai_model: Optional[str] = None
+    ai_timeout_seconds: int = Field(default=30, ge=1, le=120)
 
 
 class AgentSuggestRequest(BaseModel):
@@ -83,3 +116,15 @@ class AgentSuggestResponse(BaseModel):
 class AgentStatusResponse(BaseModel):
     available: bool
     mode: str
+    model: Optional[str] = None
+
+
+class ImportErrorDetail(BaseModel):
+    row: int
+    reason: str
+
+
+class ImportResult(BaseModel):
+    created: int
+    skipped: int
+    errors: list[ImportErrorDetail] = []
