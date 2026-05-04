@@ -1,9 +1,57 @@
-Backend/__pycache__/
-Backend/**/*.pyc
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Python environments
+.venv/
+venv/
+env/
+.env/
+.env.*
+*.env
+.python-version
+
+# Python tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.cache/
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Local generated lists
+file_tree.txt
+
+# Local databases and storage
+*.db
+*.sqlite3
 Backend/uploads/
 Backend/store.db
 Backend/storage_config.json
+Backend/uploads/**/*.pdf
+storage/**/*.pdf
+
+# Frontend dependencies/build outputs
 Frontend/node_modules/
-.env
-*.log
-.venv/
+Frontend/dist/
+node_modules/
+dist/
+build/
+.vite/
+.parcel-cache/
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.iml
+
+# Build & release artifacts
+release/
+
+# OS junk files
+.DS_Store
+Thumbs.db
