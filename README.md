@@ -66,34 +66,32 @@ curl -s -X POST http://127.0.0.1:8000/agent/suggest \
 - 已完成：后端标题校验、上传路径安全校验、导入结果统计与错误输出。
 - 运行方式：进入 Backend 安装依赖后，使用 `python run.py` 或 `start.bat` 启动服务。
 
-## 解压即用发布包
+## 桌面版（独立窗口，解压即用）
 
-使用 PowerShell 生成发布目录（不会打包个人配置与数据库）：
-
-```powershell
-.
-scripts\build_release.ps1
-```
-
-输出目录：`release\LiteratureManager`
-
-使用方式：
-
-- 双击 `launch.bat` 启动后端并打开前端页面。
-- 使用手册：`USER_MANUAL.html`
-
-## 免安装发布包（含 Python 解释器）
-
-使用 PyInstaller 生成自包含版本（无需用户安装 Python）：
+使用 Electron 将前端打包为桌面窗口，并内置后端 exe：
 
 ```powershell
-.
-scripts\build_portable.ps1
+cd DesktopApp
+npm install
+npm run dist
 ```
 
-输出目录：`portable\LiteratureManager`
+产物在 `DesktopApp\dist`（zip 解压即用）。
 
-使用方式：
+## 桌面一键打包脚本
 
-- 双击 `launch_portable.bat` 启动后端并打开前端页面。
-- 使用手册：`USER_MANUAL.html`
+在支持 Bash 的环境（如 Git Bash）执行：
+
+```bash
+./scripts/build_fullstack.sh
+```
+
+或使用 PowerShell：
+
+```powershell
+scripts\build_fullstack.ps1
+```
+
+输出：
+
+- `DesktopApp/dist`（桌面 zip 包）

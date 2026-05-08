@@ -44,6 +44,14 @@ build/
 .vite/
 .parcel-cache/
 
+# Desktop app artifacts
+DesktopApp/node_modules/
+DesktopApp/dist/
+DesktopApp/backend/
+DesktopApp/frontend/
+DesktopApp/.build/
+DesktopApp/.dist/
+
 # IDE/editor settings
 .vscode/
 .idea/
