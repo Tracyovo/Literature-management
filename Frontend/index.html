@@ -7,29 +7,15 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <main class="container">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">Local-first workspace</p>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-header">
           <h1>Literature Manager</h1>
-          <p class="subtitle">
-            Store files locally, manage metadata, and keep everything
-            searchable.
-          </p>
+          <p class="muted">Local-first workspace</p>
         </div>
-        <div class="hero-card">
-          <h2>API Status</h2>
-          <button id="healthCheck" class="ghost">Ping API</button>
-          <pre id="healthResult"></pre>
-        </div>
-      </header>
 
-      <section class="grid">
-        <div class="card">
-          <h2>Storage Root</h2>
-          <p class="muted">
-            Pick the root directory where files are stored locally.
-          </p>
+        <div class="sidebar-section">
+          <div class="section-title">Storage Root</div>
           <div class="row">
             <input
               id="storageRoot"
@@ -41,11 +27,146 @@
           <div id="rootStatus" class="status"></div>
         </div>
 
-        <div class="card">
-          <h2>Agent Configuration</h2>
-          <p class="muted">
-            Configure external API for metadata suggestions (optional).
-          </p>
+        <div class="sidebar-section">
+          <div class="section-title row space-between">
+            <span>Folders</span>
+            <button id="refreshFolders" class="ghost">Refresh</button>
+          </div>
+          <div id="folderTree" class="tree"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="section-title">Categories</div>
+          <div class="row">
+            <input
+              id="newCategoryInput"
+              type="text"
+              placeholder="New category"
+            />
+            <button id="addCategory">Add</button>
+          </div>
+          <div id="categoryStatus" class="status"></div>
+          <div id="categoryList" class="pill-list"></div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button id="openAiCenter" class="ghost">AI Center</button>
+          <button id="openUpload">Add File</button>
+        </div>
+      </aside>
+
+      <section class="list-pane">
+        <div class="list-toolbar">
+          <div class="row space-between">
+            <div class="row">
+              <button id="clearFolder" class="ghost">All folders</button>
+              <span id="activeFolderLabel" class="muted">All folders</span>
+            </div>
+            <button id="refreshList" class="ghost">Refresh</button>
+          </div>
+          <div class="search-bar">
+            <input id="searchInput" type="text" placeholder="Search keywords" />
+            <select id="searchCategory">
+              <option value="">All categories</option>
+            </select>
+            <input id="yearStart" type="number" placeholder="Year from" />
+            <input id="yearEnd" type="number" placeholder="Year to" />
+            <button id="runSearch">Search</button>
+          </div>
+          <div class="row space-between">
+            <div class="row">
+              <select id="pageSize">
+                <option value="10">10 / page</option>
+                <option value="25" selected>25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
+            <div class="row">
+              <button id="prevPage" class="ghost">Prev</button>
+              <span id="pageInfo" class="muted">Page 1</span>
+              <button id="nextPage" class="ghost">Next</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="table">
+          <div id="listHeader" class="table-head">
+            <button class="table-sort" data-sort="title">Title</button>
+            <button class="table-sort" data-sort="authors">Authors</button>
+            <button class="table-sort" data-sort="year">Year</button>
+            <button class="table-sort" data-sort="category">Category</button>
+          </div>
+          <div id="literatureList" class="table-body"></div>
+        </div>
+      </section>
+
+      <aside class="detail-pane">
+        <div class="detail-header">
+          <div>
+            <h2>Details</h2>
+            <div id="agentMeta" class="muted"></div>
+          </div>
+          <div class="row">
+            <button id="deleteDetail" class="ghost">Delete</button>
+            <button id="saveDetail">Save</button>
+          </div>
+        </div>
+
+        <div class="detail-form">
+          <label>
+            Title
+            <input id="detailTitleInput" type="text" />
+          </label>
+          <label>
+            Authors
+            <input id="detailAuthorsInput" type="text" />
+          </label>
+          <div class="row">
+            <label>
+              Year
+              <input id="detailYearInput" type="number" />
+            </label>
+            <label>
+              Journal
+              <input id="detailJournalInput" type="text" />
+            </label>
+          </div>
+          <label>
+            Category
+            <select id="detailCategorySelect">
+              <option value="">No category</option>
+            </select>
+          </label>
+          <label>
+            Abstract
+            <textarea id="detailAbstractInput" rows="6"></textarea>
+          </label>
+          <label>
+            Citation
+            <textarea id="detailCitationInput" rows="3"></textarea>
+          </label>
+          <label>
+            File
+            <div id="detailFile" class="detail-box"></div>
+          </label>
+          <div class="row space-between">
+            <button id="agentSuggest" class="ghost" type="button">
+              Agent Suggest
+            </button>
+            <div id="agentStatus" class="status"></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="aiModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-action="close-ai"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="row space-between">
+          <h2>AI Center</h2>
+          <button id="closeAiCenter" class="ghost">Close</button>
+        </div>
+        <div class="stack">
           <div class="row">
             <select id="agentProvider">
               <option value="disabled">Disabled</option>
@@ -76,181 +197,58 @@
             <button id="saveAgentConfig">Save</button>
           </div>
           <div id="agentConfigStatus" class="status"></div>
-        </div>
-
-        <div class="card">
-          <h2>Upload Literature</h2>
-          <form id="uploadForm" class="stack">
-            <div class="row">
-              <input id="titleInput" type="text" placeholder="Title" />
-              <input id="authorsInput" type="text" placeholder="Authors" />
-            </div>
-            <div class="row">
-              <input id="yearInput" type="number" placeholder="Year" />
-              <input id="journalInput" type="text" placeholder="Journal" />
-            </div>
-            <textarea
-              id="abstractInput"
-              placeholder="Abstract"
-              rows="3"
-            ></textarea>
-            <textarea
-              id="citationInput"
-              placeholder="Citation"
-              rows="2"
-            ></textarea>
-            <div class="row">
-              <select id="categorySelect">
-                <option value="">No category</option>
-              </select>
-              <input id="subdirInput" type="text" placeholder="Subfolder" />
-            </div>
-            <div class="row">
-              <input id="fileInput" type="file" />
-              <button type="submit">Upload</button>
-            </div>
-            <div class="progress">
-              <div id="uploadProgress" class="progress-bar"></div>
-            </div>
-            <div id="uploadStatus" class="status"></div>
-          </form>
-        </div>
-
-        <div class="card">
-          <h2>Categories</h2>
-          <div class="row">
-            <input
-              id="newCategoryInput"
-              type="text"
-              placeholder="New category"
-            />
-            <button id="addCategory">Add</button>
-          </div>
-          <div id="categoryStatus" class="status"></div>
-          <div id="categoryList" class="pill-list"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="row space-between">
-          <h2>Library</h2>
-          <button id="refreshList" class="ghost">Refresh</button>
-        </div>
-        <div class="search-bar">
-          <input id="searchInput" type="text" placeholder="Search keywords" />
-          <select id="searchCategory">
-            <option value="">All categories</option>
-          </select>
-          <input id="yearStart" type="number" placeholder="Year from" />
-          <input id="yearEnd" type="number" placeholder="Year to" />
-          <button id="runSearch">Search</button>
-        </div>
-        <div class="row space-between">
-          <div class="row">
-            <select id="sortBy">
-              <option value="id">Sort by: ID</option>
-              <option value="title">Sort by: Title</option>
-              <option value="year">Sort by: Year</option>
-              <option value="created_at">Sort by: Created</option>
-              <option value="updated_at">Sort by: Updated</option>
-            </select>
-            <select id="sortOrder">
-              <option value="desc">Desc</option>
-              <option value="asc">Asc</option>
-            </select>
-            <select id="pageSize">
-              <option value="10">10 / page</option>
-              <option value="25" selected>25 / page</option>
-              <option value="50">50 / page</option>
-            </select>
-          </div>
-          <div class="row">
-            <button id="prevPage" class="ghost">Prev</button>
-            <span id="pageInfo" class="muted">Page 1</span>
-            <button id="nextPage" class="ghost">Next</button>
-          </div>
-        </div>
-        <div class="table">
-          <div class="table-head">
-            <span>Title</span>
-            <span>Authors</span>
-            <span>Year</span>
-            <span>Category</span>
-            <span>Actions</span>
-          </div>
-          <div id="literatureList" class="table-body"></div>
-        </div>
-      </section>
-    </main>
-
-    <div id="editModal" class="modal hidden" aria-hidden="true">
-      <div class="modal-backdrop" data-action="close"></div>
-      <div class="modal-card" role="dialog" aria-modal="true">
-        <div class="row space-between">
-          <h2>Edit Literature</h2>
-          <button id="closeEdit" class="ghost">Close</button>
-        </div>
-        <div class="stack">
-          <div class="row">
-            <input id="editTitle" type="text" placeholder="Title" />
-            <input id="editAuthors" type="text" placeholder="Authors" />
-          </div>
-          <div class="row">
-            <input id="editYear" type="number" placeholder="Year" />
-            <input id="editJournal" type="text" placeholder="Journal" />
-          </div>
-          <textarea
-            id="editAbstract"
-            rows="4"
-            placeholder="Abstract"
-          ></textarea>
-          <textarea
-            id="editCitation"
-            rows="2"
-            placeholder="Citation"
-          ></textarea>
-          <div class="row">
-            <select id="editCategory">
-              <option value="">No category</option>
-            </select>
-            <button id="agentSuggest" class="ghost" type="button">
-              Agent Suggest
-            </button>
-          </div>
-          <div class="row space-between">
+          <div class="ai-status">
             <div>
-              <div id="agentMeta" class="muted"></div>
-              <div id="agentStatus" class="status"></div>
+              <h3>API Status</h3>
+              <button id="healthCheck" class="ghost">Ping API</button>
             </div>
-            <div class="actions">
-              <button id="saveEdit">Save</button>
-            </div>
+            <pre id="healthResult"></pre>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="detailModal" class="modal hidden" aria-hidden="true">
-      <div class="modal-backdrop" data-action="close-detail"></div>
+    <div id="uploadModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" data-action="close-upload"></div>
       <div class="modal-card" role="dialog" aria-modal="true">
         <div class="row space-between">
-          <h2>Literature Detail</h2>
-          <button id="closeDetail" class="ghost">Close</button>
+          <h2>Upload Literature</h2>
+          <button id="closeUpload" class="ghost">Close</button>
         </div>
-        <div class="stack">
-          <div><strong>Title:</strong> <span id="detailTitle"></span></div>
-          <div><strong>Authors:</strong> <span id="detailAuthors"></span></div>
-          <div><strong>Year:</strong> <span id="detailYear"></span></div>
-          <div><strong>Journal:</strong> <span id="detailJournal"></span></div>
-          <div>
-            <strong>Category:</strong> <span id="detailCategory"></span>
+        <form id="uploadForm" class="stack">
+          <div class="row">
+            <input id="titleInput" type="text" placeholder="Title" />
+            <input id="authorsInput" type="text" placeholder="Authors" />
           </div>
-          <div><strong>Abstract:</strong></div>
-          <div id="detailAbstract" class="detail-box"></div>
-          <div><strong>Citation:</strong></div>
-          <div id="detailCitation" class="detail-box"></div>
-          <div><strong>File:</strong> <span id="detailFile"></span></div>
-        </div>
+          <div class="row">
+            <input id="yearInput" type="number" placeholder="Year" />
+            <input id="journalInput" type="text" placeholder="Journal" />
+          </div>
+          <textarea
+            id="abstractInput"
+            placeholder="Abstract"
+            rows="3"
+          ></textarea>
+          <textarea
+            id="citationInput"
+            placeholder="Citation"
+            rows="2"
+          ></textarea>
+          <div class="row">
+            <select id="categorySelect">
+              <option value="">No category</option>
+            </select>
+            <input id="subdirInput" type="text" placeholder="Subfolder" />
+          </div>
+          <div class="row">
+            <input id="fileInput" type="file" />
+            <button type="submit">Upload</button>
+          </div>
+          <div class="progress">
+            <div id="uploadProgress" class="progress-bar"></div>
+          </div>
+          <div id="uploadStatus" class="status"></div>
+        </form>
       </div>
     </div>
 

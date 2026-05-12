@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import text
+from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 ALLOWED_SORT_FIELDS = {
     "id": Literature.id,
     "title": Literature.title,
+    "authors": Literature.authors,
     "year": Literature.year,
+    "category_id": Literature.category_id,
     "created_at": Literature.created_at,
     "updated_at": Literature.updated_at,
 }
@@ -179,15 +181,32 @@ def list_literatures(
     offset: int = 0,
     sort_by: str = "id",
     sort_order: str = "desc",
+    path_prefix: str | None = None,
     db: Session = Depends(get_db),
 ):
     limit = max(1, min(limit, 200))
     offset = max(0, offset)
+    query = db.query(Literature)
+
+    if path_prefix:
+        settings = get_settings()
+        try:
+            prefix_path = safe_join(settings.storage_root, path_prefix)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid path prefix") from exc
+        prefix_native = str(prefix_path)
+        prefix_alt = prefix_native.replace("\\", "/")
+        query = query.filter(
+            or_(
+                Literature.file_path.ilike(f"{prefix_native}%"),
+                Literature.file_path.ilike(f"{prefix_alt}%"),
+            )
+        )
     sort_column = ALLOWED_SORT_FIELDS.get(sort_by, Literature.id)
     order_expr = (
         sort_column.desc() if sort_order.lower() == "desc" else sort_column.asc()
     )
-    return db.query(Literature).order_by(order_expr).offset(offset).limit(limit).all()
+    return query.order_by(order_expr).offset(offset).limit(limit).all()
 
 
 @router.get("/{literature_id}", response_model=LiteratureOut)

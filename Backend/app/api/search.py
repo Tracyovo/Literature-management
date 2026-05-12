@@ -1,19 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import or_, text
 from sqlalchemy.orm import Session
 
+from ..config import get_settings
 from ..database import get_db
 from ..models import Literature
 from ..schemas import SearchHit, SearchHighlights, SearchResponse
 from ..services.fts_manager import build_bm25_expression, ensure_fts_table
-from ..utils import require_api_key
+from ..utils import require_api_key, safe_join
 
 router = APIRouter(dependencies=[Depends(require_api_key)])
 
 ALLOWED_SORT_FIELDS = {
     "id": Literature.id,
     "title": Literature.title,
+    "authors": Literature.authors,
     "year": Literature.year,
+    "category_id": Literature.category_id,
     "created_at": Literature.created_at,
     "updated_at": Literature.updated_at,
 }
@@ -29,6 +32,7 @@ def search(
     offset: int = 0,
     sort_by: str = "id",
     sort_order: str = "desc",
+    path_prefix: str | None = None,
     db: Session = Depends(get_db),
 ):
     query = db.query(Literature)
@@ -96,6 +100,21 @@ def search(
 
     if year_end is not None:
         query = query.filter(Literature.year <= year_end)
+
+    if path_prefix:
+        settings = get_settings()
+        try:
+            prefix_path = safe_join(settings.storage_root, path_prefix)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid path prefix") from exc
+        prefix_native = str(prefix_path)
+        prefix_alt = prefix_native.replace("\\", "/")
+        query = query.filter(
+            or_(
+                Literature.file_path.ilike(f"{prefix_native}%"),
+                Literature.file_path.ilike(f"{prefix_alt}%"),
+            )
+        )
 
     limit = max(1, min(limit, 200))
     offset = max(0, offset)

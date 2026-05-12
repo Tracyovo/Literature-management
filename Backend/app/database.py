@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -13,15 +13,27 @@ Base = declarative_base()
 def get_engine():
     settings = get_settings()
     if settings.database_url.endswith(":memory:"):
-        return create_engine(
+        engine = create_engine(
             settings.database_url,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-    return create_engine(
-        settings.database_url,
-        connect_args={"check_same_thread": False},
-    )
+    else:
+        engine = create_engine(
+            settings.database_url,
+            connect_args={"check_same_thread": False},
+        )
+
+    if settings.database_url.startswith("sqlite"):
+
+        @event.listens_for(engine, "connect")
+        def _set_sqlite_pragmas(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.close()
+
+    return engine
 
 
 @lru_cache(maxsize=1)

@@ -1,4 +1,5 @@
-const apiBase = "http://127.0.0.1:8000";
+const urlParams = new URLSearchParams(window.location.search);
+const apiBase = urlParams.get("apiBase") || "http://127.0.0.1:8000";
 
 const storageRootInput = document.getElementById("storageRoot");
 const saveRootButton = document.getElementById("saveRoot");
@@ -12,6 +13,14 @@ const agentApiKeyInput = document.getElementById("agentApiKey");
 const agentTimeoutInput = document.getElementById("agentTimeout");
 const saveAgentConfigButton = document.getElementById("saveAgentConfig");
 const agentConfigStatus = document.getElementById("agentConfigStatus");
+
+const openAiCenterButton = document.getElementById("openAiCenter");
+const closeAiCenterButton = document.getElementById("closeAiCenter");
+const aiModal = document.getElementById("aiModal");
+
+const openUploadButton = document.getElementById("openUpload");
+const closeUploadButton = document.getElementById("closeUpload");
+const uploadModal = document.getElementById("uploadModal");
 
 const uploadForm = document.getElementById("uploadForm");
 const titleInput = document.getElementById("titleInput");
@@ -31,43 +40,35 @@ const searchCategory = document.getElementById("searchCategory");
 const yearStartInput = document.getElementById("yearStart");
 const yearEndInput = document.getElementById("yearEnd");
 const runSearchButton = document.getElementById("runSearch");
-const sortBySelect = document.getElementById("sortBy");
-const sortOrderSelect = document.getElementById("sortOrder");
 const pageSizeSelect = document.getElementById("pageSize");
 const prevPageButton = document.getElementById("prevPage");
 const nextPageButton = document.getElementById("nextPage");
 const pageInfo = document.getElementById("pageInfo");
+const listHeader = document.getElementById("listHeader");
+const refreshFoldersButton = document.getElementById("refreshFolders");
+const folderTree = document.getElementById("folderTree");
+const clearFolderButton = document.getElementById("clearFolder");
+const activeFolderLabel = document.getElementById("activeFolderLabel");
 const newCategoryInput = document.getElementById("newCategoryInput");
 const addCategoryButton = document.getElementById("addCategory");
 const categoryStatus = document.getElementById("categoryStatus");
 const categoryList = document.getElementById("categoryList");
 const uploadProgress = document.getElementById("uploadProgress");
 
-const editModal = document.getElementById("editModal");
-const closeEditButton = document.getElementById("closeEdit");
-const editTitle = document.getElementById("editTitle");
-const editAuthors = document.getElementById("editAuthors");
-const editYear = document.getElementById("editYear");
-const editJournal = document.getElementById("editJournal");
-const editAbstract = document.getElementById("editAbstract");
-const editCitation = document.getElementById("editCitation");
-const editCategory = document.getElementById("editCategory");
-const saveEditButton = document.getElementById("saveEdit");
+const detailTitleInput = document.getElementById("detailTitleInput");
+const detailAuthorsInput = document.getElementById("detailAuthorsInput");
+const detailYearInput = document.getElementById("detailYearInput");
+const detailJournalInput = document.getElementById("detailJournalInput");
+const detailAbstractInput = document.getElementById("detailAbstractInput");
+const detailCitationInput = document.getElementById("detailCitationInput");
+const detailCategorySelect = document.getElementById("detailCategorySelect");
+const detailFile = document.getElementById("detailFile");
+const saveDetailButton = document.getElementById("saveDetail");
+const deleteDetailButton = document.getElementById("deleteDetail");
 const agentSuggestButton = document.getElementById("agentSuggest");
 const agentStatus = document.getElementById("agentStatus");
 const agentMeta = document.getElementById("agentMeta");
 const toastContainer = document.getElementById("toastContainer");
-
-const detailModal = document.getElementById("detailModal");
-const closeDetailButton = document.getElementById("closeDetail");
-const detailTitle = document.getElementById("detailTitle");
-const detailAuthors = document.getElementById("detailAuthors");
-const detailYear = document.getElementById("detailYear");
-const detailJournal = document.getElementById("detailJournal");
-const detailCategory = document.getElementById("detailCategory");
-const detailAbstract = document.getElementById("detailAbstract");
-const detailCitation = document.getElementById("detailCitation");
-const detailFile = document.getElementById("detailFile");
 
 let categoryMap = new Map();
 let literatureCache = new Map();
@@ -75,6 +76,14 @@ let activeLiteratureId = null;
 let currentPage = 1;
 let pageSize = 25;
 let currentMode = "list";
+let sortBy = "updated_at";
+let sortOrder = "desc";
+let activeFolderPath = null;
+let pendingSaveTimer = null;
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
 
 function showToast(type, title, message) {
   const toast = document.createElement("div");
@@ -117,6 +126,11 @@ async function loadStorageRoot() {
   storageRootInput.value = data.storage_root || "";
 }
 
+async function loadStorageTree() {
+  const data = await fetchJson(`${apiBase}/config/storage-tree?depth=3`);
+  renderFolderTree(Array.isArray(data.nodes) ? data.nodes : []);
+}
+
 async function saveStorageRoot() {
   const payload = { storage_root: storageRootInput.value };
   const data = await fetchJson(`${apiBase}/config/storage-root`, {
@@ -132,6 +146,16 @@ async function pingApi() {
   const data = await fetchJson(`${apiBase}/`);
   healthResult.textContent = JSON.stringify(data, null, 2);
   showToast("success", "API", "Backend is responding.");
+}
+
+function openModal(modal) {
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeModal(modal) {
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
 }
 
 async function loadAgentConfig() {
@@ -175,7 +199,7 @@ async function loadCategories() {
   categoryMap = new Map(data.map((item) => [item.id, item.name]));
   categorySelect.innerHTML = '<option value="">No category</option>';
   searchCategory.innerHTML = '<option value="">All categories</option>';
-  editCategory.innerHTML = '<option value="">No category</option>';
+  detailCategorySelect.innerHTML = '<option value="">No category</option>';
   categoryList.innerHTML = "";
   data.forEach((category) => {
     const option = document.createElement("option");
@@ -186,10 +210,10 @@ async function loadCategories() {
     searchOption.value = category.id;
     searchOption.textContent = category.name;
     searchCategory.appendChild(searchOption);
-    const editOption = document.createElement("option");
-    editOption.value = category.id;
-    editOption.textContent = category.name;
-    editCategory.appendChild(editOption);
+    const detailOption = document.createElement("option");
+    detailOption.value = category.id;
+    detailOption.textContent = category.name;
+    detailCategorySelect.appendChild(detailOption);
 
     const pill = document.createElement("div");
     pill.className = "pill";
@@ -211,30 +235,44 @@ function renderLiteratures(items) {
     return;
   }
 
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "table-row";
-    row.innerHTML = `
-      <span>${item.title || "Untitled"}</span>
-      <span>${item.authors || "-"}</span>
-      <span>${item.year || "-"}</span>
-      <span>${categoryMap.get(item.category_id) || "-"}</span>
-      <div class="actions">
-        <button class="ghost" data-action="view" data-id="${item.id}">View</button>
-        <button class="ghost" data-action="edit" data-id="${item.id}">Edit</button>
-        <button data-action="delete" data-id="${item.id}">Delete</button>
-      </div>
-    `;
-    literatureList.appendChild(row);
-  });
+  let index = 0;
+  const chunkSize = 24;
+  const renderChunk = () => {
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < chunkSize && index < items.length; i += 1) {
+      const item = items[index];
+      const row = document.createElement("div");
+      row.className = "table-row";
+      row.dataset.id = String(item.id);
+      if (item.id === activeLiteratureId) {
+        row.classList.add("active");
+      }
+      row.innerHTML = `
+        <span>${item.title || "Untitled"}</span>
+        <span>${item.authors || "-"}</span>
+        <span>${item.year || "-"}</span>
+        <span>${categoryMap.get(item.category_id) || "-"}</span>
+      `;
+      fragment.appendChild(row);
+      index += 1;
+    }
+    literatureList.appendChild(fragment);
+    if (index < items.length) {
+      requestAnimationFrame(renderChunk);
+    }
+  };
+  requestAnimationFrame(renderChunk);
 }
 
 async function loadLiteratures() {
   const params = new URLSearchParams();
   params.set("limit", String(pageSize));
   params.set("offset", String((currentPage - 1) * pageSize));
-  params.set("sort_by", sortBySelect.value);
-  params.set("sort_order", sortOrderSelect.value);
+  params.set("sort_by", sortBy);
+  params.set("sort_order", sortOrder);
+  if (activeFolderPath) {
+    params.set("path_prefix", activeFolderPath);
+  }
   const data = await fetchJson(`${apiBase}/literatures?${params.toString()}`);
   renderLiteratures(data);
   pageInfo.textContent = `Page ${currentPage}`;
@@ -278,56 +316,56 @@ async function deleteLiterature(literatureId) {
   });
 }
 
-async function handleEdit(literatureId) {
+function clearDetailPanel() {
+  activeLiteratureId = null;
+  detailTitleInput.value = "";
+  detailAuthorsInput.value = "";
+  detailYearInput.value = "";
+  detailJournalInput.value = "";
+  detailAbstractInput.value = "";
+  detailCitationInput.value = "";
+  detailCategorySelect.value = "";
+  detailFile.textContent = "";
+  agentStatus.textContent = "";
+}
+
+function updateDetailPanel(item) {
+  detailTitleInput.value = item.title || "";
+  detailAuthorsInput.value = item.authors || "";
+  detailYearInput.value = item.year || "";
+  detailJournalInput.value = item.journal || "";
+  detailAbstractInput.value = item.abstract || "";
+  detailCitationInput.value = item.citation || "";
+  detailCategorySelect.value = item.category_id || "";
+  detailFile.textContent = item.file_path || "";
+  agentStatus.textContent = "";
+}
+
+function selectLiterature(literatureId) {
   const item = literatureCache.get(literatureId);
   if (!item) {
     return;
   }
   activeLiteratureId = literatureId;
-  editTitle.value = item.title || "";
-  editAuthors.value = item.authors || "";
-  editYear.value = item.year || "";
-  editJournal.value = item.journal || "";
-  editAbstract.value = item.abstract || "";
-  editCitation.value = item.citation || "";
-  editCategory.value = item.category_id || "";
-  agentStatus.textContent = "";
+  updateDetailPanel(item);
   if (agentMeta) {
     agentMeta.textContent = "Agent: checking...";
     fetchAgentStatus().catch(() => {
       agentMeta.textContent = "Agent: unavailable";
     });
   }
-  editModal.classList.remove("hidden");
-}
-
-async function handleView(literatureId) {
-  const item = literatureCache.get(literatureId);
-  if (!item) {
-    return;
-  }
-  detailTitle.textContent = item.title || "";
-  detailAuthors.textContent = item.authors || "";
-  detailYear.textContent = item.year || "";
-  detailJournal.textContent = item.journal || "";
-  detailCategory.textContent = categoryMap.get(item.category_id) || "";
-  detailAbstract.textContent = item.abstract || "";
-  detailCitation.textContent = item.citation || "";
-  detailFile.textContent = item.file_path || "";
-  detailModal.classList.remove("hidden");
-}
-
-async function handleDelete(literatureId) {
-  const ok = window.confirm("Delete this literature item?");
-  if (!ok) {
-    return;
-  }
-  await deleteLiterature(literatureId);
-  await loadLiteratures();
-  showToast("success", "Deleted", "Literature removed.");
+  const rows = literatureList.querySelectorAll(".table-row");
+  rows.forEach((row) => {
+    row.classList.toggle("active", Number(row.dataset.id) === literatureId);
+  });
 }
 
 async function fetchAgentStatus() {
+  if (isOffline()) {
+    const offlineStatus = { available: false, mode: "offline", model: null };
+    updateAgentMeta(offlineStatus);
+    return offlineStatus;
+  }
   const data = await fetchJson(`${apiBase}/agent/status`);
   updateAgentMeta(data);
   return data;
@@ -349,12 +387,15 @@ function updateAgentMeta(status) {
   }
   const model = status.model ? ` (${status.model})` : "";
   agentMeta.textContent = `Agent: ${status.mode}${model}`;
-  agentSuggestButton.disabled = false;
+  agentSuggestButton.disabled = !activeLiteratureId;
 }
 
 async function runAgentSuggest() {
   if (!activeLiteratureId) {
     return;
+  }
+  if (isOffline()) {
+    throw new Error("Offline mode: agent disabled");
   }
   const data = await fetchJson(`${apiBase}/agent/suggest`, {
     method: "POST",
@@ -362,16 +403,16 @@ async function runAgentSuggest() {
     body: JSON.stringify({ literature_id: activeLiteratureId }),
   });
 
-  if (data.title) editTitle.value = data.title;
-  if (data.authors) editAuthors.value = data.authors;
-  if (data.year) editYear.value = data.year;
+  if (data.title) detailTitleInput.value = data.title;
+  if (data.authors) detailAuthorsInput.value = data.authors;
+  if (data.year) detailYearInput.value = data.year;
 
   if (data.category_suggest) {
     const match = [...categoryMap.entries()].find(
       ([, name]) => name.toLowerCase() === data.category_suggest.toLowerCase(),
     );
     if (match) {
-      editCategory.value = match[0];
+      detailCategorySelect.value = match[0];
     }
   }
   agentStatus.textContent = "Agent suggestions applied.";
@@ -384,11 +425,12 @@ async function runSearch() {
   if (searchCategory.value) params.set("category_id", searchCategory.value);
   if (yearStartInput.value) params.set("year_start", yearStartInput.value);
   if (yearEndInput.value) params.set("year_end", yearEndInput.value);
+  if (activeFolderPath) params.set("path_prefix", activeFolderPath);
 
   params.set("limit", String(pageSize));
   params.set("offset", String((currentPage - 1) * pageSize));
-  params.set("sort_by", sortBySelect.value);
-  params.set("sort_order", sortOrderSelect.value);
+  params.set("sort_by", sortBy);
+  params.set("sort_order", sortOrder);
 
   const query = params.toString();
   const url = `${apiBase}/search?${query}`;
@@ -468,9 +510,100 @@ async function handleUpload(event) {
 
   uploadStatus.textContent = "Upload complete.";
   uploadForm.reset();
-  await loadLiteratures();
+  await loadCurrentList();
   uploadProgress.style.width = "0%";
   showToast("success", "Upload", "File uploaded successfully.");
+  closeModal(uploadModal);
+}
+
+function renderFolderTree(nodes) {
+  folderTree.innerHTML = "";
+  if (!nodes.length) {
+    folderTree.innerHTML = '<div class="table-empty">No folders found.</div>';
+    return;
+  }
+
+  const buildList = (items) => {
+    const list = document.createElement("ul");
+    items.forEach((item) => {
+      const entry = document.createElement("li");
+      const row = document.createElement("div");
+      row.className = "tree-item";
+      row.dataset.path = item.path;
+      row.textContent = item.name;
+      if (activeFolderPath === item.path) {
+        row.classList.add("active");
+      }
+      entry.appendChild(row);
+      if (Array.isArray(item.children) && item.children.length) {
+        entry.appendChild(buildList(item.children));
+      }
+      list.appendChild(entry);
+    });
+    return list;
+  };
+
+  folderTree.appendChild(buildList(nodes));
+}
+
+function setActiveFolder(pathValue) {
+  activeFolderPath = pathValue;
+  activeFolderLabel.textContent = pathValue ? pathValue : "All folders";
+  loadCurrentList().catch(() => {});
+  loadStorageTree().catch(() => {});
+}
+
+function loadCurrentList() {
+  if (currentMode === "search") {
+    return runSearch();
+  }
+  return loadLiteratures();
+}
+
+function scheduleAutoSave() {
+  if (!activeLiteratureId) {
+    return;
+  }
+  if (pendingSaveTimer) {
+    clearTimeout(pendingSaveTimer);
+  }
+  pendingSaveTimer = setTimeout(() => {
+    pendingSaveTimer = null;
+    saveDetail().catch(() => {});
+  }, 600);
+}
+
+async function saveDetail() {
+  if (!activeLiteratureId) {
+    return;
+  }
+  if (!detailTitleInput.value.trim()) {
+    agentStatus.textContent = "Title is required.";
+    agentStatus.classList.add("error");
+    showToast("error", "Edit", "Title is required.");
+    return;
+  }
+  if (!isYearValid(detailYearInput.value)) {
+    agentStatus.textContent = "Year must be between 1800 and 2100.";
+    agentStatus.classList.add("error");
+    showToast("error", "Edit", "Invalid year range.");
+    return;
+  }
+  const payload = {
+    title: detailTitleInput.value.trim() || null,
+    authors: detailAuthorsInput.value.trim() || null,
+    year: detailYearInput.value ? Number(detailYearInput.value) : null,
+    journal: detailJournalInput.value.trim() || null,
+    abstract: detailAbstractInput.value.trim() || null,
+    citation: detailCitationInput.value.trim() || null,
+    category_id: detailCategorySelect.value
+      ? Number(detailCategorySelect.value)
+      : null,
+  };
+  await updateLiterature(activeLiteratureId, payload);
+  agentStatus.classList.remove("error");
+  agentStatus.textContent = "Saved.";
+  await loadCurrentList();
 }
 
 saveRootButton.addEventListener("click", () => {
@@ -478,6 +611,39 @@ saveRootButton.addEventListener("click", () => {
     statusEl.textContent = error.message;
     showToast("error", "Storage root", error.message);
   });
+});
+
+openAiCenterButton.addEventListener("click", () => {
+  openModal(aiModal);
+});
+
+closeAiCenterButton.addEventListener("click", () => {
+  closeModal(aiModal);
+});
+
+aiModal.addEventListener("click", (event) => {
+  const target = event.target;
+  if (target instanceof HTMLElement && target.dataset.action === "close-ai") {
+    closeModal(aiModal);
+  }
+});
+
+openUploadButton.addEventListener("click", () => {
+  openModal(uploadModal);
+});
+
+closeUploadButton.addEventListener("click", () => {
+  closeModal(uploadModal);
+});
+
+uploadModal.addEventListener("click", (event) => {
+  const target = event.target;
+  if (
+    target instanceof HTMLElement &&
+    target.dataset.action === "close-upload"
+  ) {
+    closeModal(uploadModal);
+  }
 });
 
 if (saveAgentConfigButton) {
@@ -523,32 +689,36 @@ runSearchButton.addEventListener("click", () => {
   });
 });
 
-sortBySelect.addEventListener("change", () => {
-  currentPage = 1;
-  if (currentMode === "search") {
-    runSearch().catch(() => {});
-  } else {
-    loadLiteratures().catch(() => {});
+listHeader.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-sort]");
+  if (!(target instanceof HTMLElement)) {
+    return;
   }
-});
-
-sortOrderSelect.addEventListener("change", () => {
-  currentPage = 1;
-  if (currentMode === "search") {
-    runSearch().catch(() => {});
-  } else {
-    loadLiteratures().catch(() => {});
+  const sortKey = target.dataset.sort;
+  if (!sortKey) {
+    return;
   }
+  const sortMap = {
+    title: "title",
+    authors: "authors",
+    year: "year",
+    category: "category_id",
+  };
+  const nextSortBy = sortMap[sortKey] || "updated_at";
+  if (sortBy === nextSortBy) {
+    sortOrder = sortOrder === "asc" ? "desc" : "asc";
+  } else {
+    sortBy = nextSortBy;
+    sortOrder = "asc";
+  }
+  currentPage = 1;
+  loadCurrentList().catch(() => {});
 });
 
 pageSizeSelect.addEventListener("change", () => {
   pageSize = Number(pageSizeSelect.value);
   currentPage = 1;
-  if (currentMode === "search") {
-    runSearch().catch(() => {});
-  } else {
-    loadLiteratures().catch(() => {});
-  }
+  loadCurrentList().catch(() => {});
 });
 
 prevPageButton.addEventListener("click", () => {
@@ -556,20 +726,12 @@ prevPageButton.addEventListener("click", () => {
     return;
   }
   currentPage -= 1;
-  if (currentMode === "search") {
-    runSearch().catch(() => {});
-  } else {
-    loadLiteratures().catch(() => {});
-  }
+  loadCurrentList().catch(() => {});
 });
 
 nextPageButton.addEventListener("click", () => {
   currentPage += 1;
-  if (currentMode === "search") {
-    runSearch().catch(() => {});
-  } else {
-    loadLiteratures().catch(() => {});
-  }
+  loadCurrentList().catch(() => {});
 });
 
 addCategoryButton.addEventListener("click", () => {
@@ -649,41 +811,30 @@ categoryList.addEventListener("click", (event) => {
   }
 });
 
-saveEditButton.addEventListener("click", () => {
+saveDetailButton.addEventListener("click", () => {
+  saveDetail().catch(() => {
+    agentStatus.textContent = "Update failed.";
+    agentStatus.classList.add("error");
+    showToast("error", "Edit", "Update failed.");
+  });
+});
+
+deleteDetailButton.addEventListener("click", () => {
   if (!activeLiteratureId) {
     return;
   }
-  if (!editTitle.value.trim()) {
-    agentStatus.textContent = "Title is required.";
-    agentStatus.classList.add("error");
-    showToast("error", "Edit", "Title is required.");
+  const ok = window.confirm("Delete this literature item?");
+  if (!ok) {
     return;
   }
-  if (!isYearValid(editYear.value)) {
-    agentStatus.textContent = "Year must be between 1800 and 2100.";
-    agentStatus.classList.add("error");
-    showToast("error", "Edit", "Invalid year range.");
-    return;
-  }
-  const payload = {
-    title: editTitle.value.trim() || null,
-    authors: editAuthors.value.trim() || null,
-    year: editYear.value ? Number(editYear.value) : null,
-    journal: editJournal.value.trim() || null,
-    abstract: editAbstract.value.trim() || null,
-    citation: editCitation.value.trim() || null,
-    category_id: editCategory.value ? Number(editCategory.value) : null,
-  };
-  updateLiterature(activeLiteratureId, payload)
+  deleteLiterature(activeLiteratureId)
     .then(() => {
-      editModal.classList.add("hidden");
-      showToast("success", "Edit", "Literature updated.");
-      return loadLiteratures();
+      clearDetailPanel();
+      showToast("success", "Deleted", "Literature removed.");
+      return loadCurrentList();
     })
-    .catch(() => {
-      agentStatus.textContent = "Update failed.";
-      agentStatus.classList.add("error");
-      showToast("error", "Edit", "Update failed.");
+    .catch((error) => {
+      showToast("error", "Delete", error.message);
     });
 });
 
@@ -704,74 +855,67 @@ agentSuggestButton.addEventListener("click", () => {
     });
 });
 
-closeEditButton.addEventListener("click", () => {
-  editModal.classList.add("hidden");
-  activeLiteratureId = null;
-});
-
-closeDetailButton.addEventListener("click", () => {
-  detailModal.classList.add("hidden");
-});
-
-editModal.addEventListener("click", (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) {
-    return;
-  }
-  if (target.dataset.action === "close") {
-    editModal.classList.add("hidden");
-    activeLiteratureId = null;
-  }
-});
-
-detailModal.addEventListener("click", (event) => {
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) {
-    return;
-  }
-  if (target.dataset.action === "close-detail") {
-    detailModal.classList.add("hidden");
-  }
-});
-
 literatureList.addEventListener("click", (event) => {
   const target = event.target;
   if (!(target instanceof HTMLElement)) {
     return;
   }
-  const action = target.dataset.action;
-  const id = target.dataset.id;
-  if (!action || !id) {
+  const row = target.closest(".table-row");
+  if (!(row instanceof HTMLElement)) {
     return;
   }
-
-  if (action === "edit") {
-    handleEdit(Number(id)).catch(() => {
-      literatureList.innerHTML =
-        '<div class="table-empty">Update failed.</div>';
-    });
+  const id = Number(row.dataset.id);
+  if (!id) {
+    return;
   }
+  selectLiterature(id);
+});
 
-  if (action === "view") {
-    handleView(Number(id)).catch(() => {
-      literatureList.innerHTML =
-        '<div class="table-empty">Detail failed.</div>';
-    });
+folderTree.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) {
+    return;
   }
+  const row = target.closest(".tree-item");
+  if (!(row instanceof HTMLElement)) {
+    return;
+  }
+  const pathValue = row.dataset.path || null;
+  if (!pathValue) {
+    return;
+  }
+  setActiveFolder(pathValue);
+});
 
-  if (action === "delete") {
-    handleDelete(Number(id)).catch(() => {
-      literatureList.innerHTML =
-        '<div class="table-empty">Delete failed.</div>';
-    });
-  }
+refreshFoldersButton.addEventListener("click", () => {
+  loadStorageTree().catch(() => {});
+});
+
+clearFolderButton.addEventListener("click", () => {
+  setActiveFolder(null);
+});
+
+[
+  detailTitleInput,
+  detailAuthorsInput,
+  detailYearInput,
+  detailJournalInput,
+  detailAbstractInput,
+  detailCitationInput,
+  detailCategorySelect,
+].forEach((input) => {
+  input.addEventListener("blur", () => {
+    scheduleAutoSave();
+  });
 });
 
 Promise.all([
   loadStorageRoot(),
+  loadStorageTree(),
   loadAgentConfig(),
   loadCategories(),
   loadLiteratures(),
+  fetchAgentStatus(),
 ]).catch(() => {
   statusEl.textContent = "Failed to load storage root";
 });
